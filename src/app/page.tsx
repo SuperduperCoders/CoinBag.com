@@ -144,9 +144,11 @@ const CoinGame: React.FC = () => {
       }`}
       onClick={handleClick}
     >
-      <h1 className="absolute top-4 left-1/2 transform -translate-x-1/2 text-2xl sm:text-4xl font-extrabold text-yellow-900 drop-shadow-xl animate-bounce">
-        💰 Coins: {score}
-      </h1>
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex justify-center">
+        <h1 className="text-2xl sm:text-4xl font-extrabold text-yellow-900 drop-shadow-xl animate-bounce flex items-center">
+          💰 Coins: {score}
+        </h1>
+      </div>
 
       <button
         onClick={resetGame}
@@ -195,8 +197,8 @@ const CoinGame: React.FC = () => {
 
       <div className="absolute top-1/2 right-2 transform -translate-y-1/2 w-11/12 max-w-xs bg-white bg-opacity-90 p-4 rounded-xl shadow-lg flex flex-col gap-2 animate-slide-in">
         <h2 className="text-lg font-bold text-yellow-900 text-center">💥 Multipliers</h2>
-        {[2, 3, 4, 5].map((multiplier) => {
-          const cost = multiplier * 100;
+        {[2, 3, 4, 5, 10].map((multiplier) => {
+          const cost = multiplier === 10 ? 1000 : multiplier * 100;
           const owned = coinMultiplier >= multiplier;
           return (
             <button
