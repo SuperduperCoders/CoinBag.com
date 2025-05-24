@@ -15,6 +15,7 @@ const CoinGame: React.FC = () => {
   const [secretCode, setSecretCode] = useState("");
   const [codeUsed, setCodeUsed] = useState(false);
   const [codeFeedback, setCodeFeedback] = useState<"none" | "success" | "error">("none");
+  const [coinMultiplier, setCoinMultiplier] = useState(1);
 
   // Load saved progress
   useEffect(() => {
@@ -22,11 +23,13 @@ const CoinGame: React.FC = () => {
     const savedCPS = localStorage.getItem("coinsPerSecond");
     const savedNextId = localStorage.getItem("nextId");
     const savedCodeUsed = localStorage.getItem("codeUsed");
+    const savedMultiplier = localStorage.getItem("coinMultiplier");
 
     if (savedScore) setScore(Number(savedScore));
     if (savedCPS) setCoinsPerSecond(Number(savedCPS));
     if (savedNextId) setNextId(Number(savedNextId));
     if (savedCodeUsed === "true") setCodeUsed(true);
+    if (savedMultiplier) setCoinMultiplier(Number(savedMultiplier));
   }, []);
 
   // Save progress
@@ -34,6 +37,7 @@ const CoinGame: React.FC = () => {
   useEffect(() => localStorage.setItem("coinsPerSecond", coinsPerSecond.toString()), [coinsPerSecond]);
   useEffect(() => localStorage.setItem("nextId", nextId.toString()), [nextId]);
   useEffect(() => localStorage.setItem("codeUsed", codeUsed.toString()), [codeUsed]);
+  useEffect(() => localStorage.setItem("coinMultiplier", coinMultiplier.toString()), [coinMultiplier]);
 
   // Spawn coins
   useEffect(() => {
@@ -56,7 +60,7 @@ const CoinGame: React.FC = () => {
 
   const collectCoin = (id: number) => {
     setCoins((prev) => prev.filter((c) => c.id !== id));
-    setScore((prev) => prev + 1);
+    setScore((prev) => prev + 1 * coinMultiplier);
   };
 
   const buyUpgrade = () => {
@@ -86,8 +90,15 @@ const CoinGame: React.FC = () => {
       setSecretCode("");
       setCodeUsed(false);
       setCodeFeedback("none");
+      setCoinMultiplier(1);
       localStorage.clear();
     }
+  };
+
+  const buyMultiplier = (multiplier: number, cost: number) => {
+    if (coinMultiplier >= multiplier || score < cost) return;
+    setScore((prev) => prev - cost);
+    setCoinMultiplier(multiplier);
   };
 
   return (
@@ -143,6 +154,31 @@ const CoinGame: React.FC = () => {
         >
           ✅ Redeem
         </button>
+      </div>
+
+      {/* Multiplier Sidebar */}
+      <div className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-white bg-opacity-90 p-4 rounded-xl shadow-lg flex flex-col gap-2 w-48 animate-slide-in">
+        <h2 className="text-lg font-bold text-yellow-900 text-center">💥 Multipliers</h2>
+        {[2, 3, 4, 5].map((multiplier) => {
+          const cost = multiplier * 100;
+          const owned = coinMultiplier >= multiplier;
+          return (
+            <button
+              key={multiplier}
+              onClick={() => buyMultiplier(multiplier, cost)}
+              disabled={score < cost || owned}
+              className={`px-4 py-2 rounded font-semibold transition-all duration-200 ${
+                owned
+                  ? "bg-green-300 text-green-800 cursor-default"
+                  : score < cost
+                  ? "bg-yellow-200 text-yellow-500 cursor-not-allowed"
+                  : "bg-yellow-400 text-yellow-900 hover:bg-yellow-500"
+              }`}
+            >
+              {owned ? `✅ ${multiplier}x Owned` : `🔥 ${multiplier}x Click - ${cost} Coins`}
+            </button>
+          );
+        })}
       </div>
 
       {/* Coins */}
