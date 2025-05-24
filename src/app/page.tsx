@@ -16,8 +16,10 @@ const CoinGame: React.FC = () => {
   const [codeUsed, setCodeUsed] = useState(false);
   const [codeFeedback, setCodeFeedback] = useState<"none" | "success" | "error">("none");
   const [coinMultiplier, setCoinMultiplier] = useState(1);
+  const [goldenCoin, setGoldenCoin] = useState<Coin | null>(null);
+  const [frenzyActive, setFrenzyActive] = useState(false);
+  const [frenzyTimeLeft, setFrenzyTimeLeft] = useState(0);
 
-  // Load saved progress
   useEffect(() => {
     const savedScore = localStorage.getItem("score");
     const savedCPS = localStorage.getItem("coinsPerSecond");
@@ -32,14 +34,12 @@ const CoinGame: React.FC = () => {
     if (savedMultiplier) setCoinMultiplier(Number(savedMultiplier));
   }, []);
 
-  // Save progress
   useEffect(() => localStorage.setItem("score", score.toString()), [score]);
   useEffect(() => localStorage.setItem("coinsPerSecond", coinsPerSecond.toString()), [coinsPerSecond]);
   useEffect(() => localStorage.setItem("nextId", nextId.toString()), [nextId]);
   useEffect(() => localStorage.setItem("codeUsed", codeUsed.toString()), [codeUsed]);
   useEffect(() => localStorage.setItem("coinMultiplier", coinMultiplier.toString()), [coinMultiplier]);
 
-  // Spawn coins
   useEffect(() => {
     const interval = setInterval(() => {
       const x = Math.random() * 90;
@@ -50,7 +50,6 @@ const CoinGame: React.FC = () => {
     return () => clearInterval(interval);
   }, [nextId]);
 
-  // Passive income
   useEffect(() => {
     const interval = setInterval(() => {
       setScore((prev) => prev + coinsPerSecond);
@@ -58,9 +57,30 @@ const CoinGame: React.FC = () => {
     return () => clearInterval(interval);
   }, [coinsPerSecond]);
 
+  useEffect(() => {
+    if (frenzyActive && frenzyTimeLeft > 0) {
+      const timer = setTimeout(() => setFrenzyTimeLeft(frenzyTimeLeft - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (frenzyTimeLeft === 0) {
+      setFrenzyActive(false);
+    }
+  }, [frenzyActive, frenzyTimeLeft]);
+
   const collectCoin = (id: number) => {
     setCoins((prev) => prev.filter((c) => c.id !== id));
+    if (Math.random() < 0.05 && !frenzyActive && !goldenCoin) {
+      const x = Math.random() * 90;
+      const y = Math.random() * 80;
+      setGoldenCoin({ id: nextId, x, y });
+      setNextId((id) => id + 1);
+    }
     setScore((prev) => prev + 1 * coinMultiplier);
+  };
+
+  const collectGoldenCoin = () => {
+    setGoldenCoin(null);
+    setFrenzyActive(true);
+    setFrenzyTimeLeft(5);
   };
 
   const buyUpgrade = () => {
@@ -71,7 +91,7 @@ const CoinGame: React.FC = () => {
   };
 
   const checkSecretCode = () => {
-    if (secretCode === "money123" && !codeUsed) {
+    if (secretCode === "coinbag123" && !codeUsed) {
       setScore((prev) => prev + 1_000_000_000);
       setCodeUsed(true);
       setCodeFeedback("success");
@@ -91,6 +111,9 @@ const CoinGame: React.FC = () => {
       setCodeUsed(false);
       setCodeFeedback("none");
       setCoinMultiplier(1);
+      setGoldenCoin(null);
+      setFrenzyActive(false);
+      setFrenzyTimeLeft(0);
       localStorage.clear();
     }
   };
@@ -101,14 +124,23 @@ const CoinGame: React.FC = () => {
     setCoinMultiplier(multiplier);
   };
 
+  const handleClick = () => {
+    setScore((prev) => prev + (frenzyActive ? 50 : 0));
+  };
+
   return (
-    <div className="relative w-full h-screen bg-gradient-to-br from-yellow-100 to-yellow-300 overflow-hidden font-sans">
-      {/* Score */}
+    <div
+      className={`relative w-full h-screen overflow-hidden font-sans transition-all duration-500 ${
+        frenzyActive
+          ? "bg-yellow-300 bg-gradient-to-br from-yellow-300 to-yellow-100"
+          : "bg-gradient-to-br from-yellow-100 to-yellow-300"
+      }`}
+      onClick={handleClick}
+    >
       <h1 className="absolute top-4 left-1/2 transform -translate-x-1/2 text-4xl font-extrabold text-yellow-900 drop-shadow-xl animate-bounce">
         💰 Coins: {score}
       </h1>
 
-      {/* Reset Button */}
       <button
         onClick={resetGame}
         className="absolute top-4 left-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-xl shadow-md transition-transform animate-pulse hover:scale-110"
@@ -116,7 +148,6 @@ const CoinGame: React.FC = () => {
         🔄 Reset
       </button>
 
-      {/* Upgrade */}
       <button
         onClick={buyUpgrade}
         disabled={score < 80}
@@ -133,7 +164,6 @@ const CoinGame: React.FC = () => {
         🔄 Coins/sec: {coinsPerSecond}
       </p>
 
-      {/* Secret Code Input */}
       <div className="absolute top-4 right-4 bg-white bg-opacity-90 p-4 rounded-xl shadow-lg flex flex-col items-center gap-2 animate-slide-in">
         <input
           type="text"
@@ -156,7 +186,6 @@ const CoinGame: React.FC = () => {
         </button>
       </div>
 
-      {/* Multiplier Sidebar */}
       <div className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-white bg-opacity-90 p-4 rounded-xl shadow-lg flex flex-col gap-2 w-48 animate-slide-in">
         <h2 className="text-lg font-bold text-yellow-900 text-center">💥 Multipliers</h2>
         {[2, 3, 4, 5].map((multiplier) => {
@@ -181,7 +210,41 @@ const CoinGame: React.FC = () => {
         })}
       </div>
 
-      {/* Coins */}
+      {frenzyActive && frenzyTimeLeft === 5 && (
+        <div className="absolute inset-0 pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-4 h-4 bg-yellow-300 rounded-full animate-particle"
+              style={{
+                left: "50%",
+                top: "50%",
+                transform: `translate(-50%, -50%) rotate(${i * 18}deg) translateY(-100px)`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {frenzyActive && (
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 text-2xl font-bold text-orange-700 bg-white bg-opacity-80 px-4 py-2 rounded-xl shadow-lg animate-pulse">
+          🔥 Frenzy Mode! {frenzyTimeLeft}s left!
+        </div>
+      )}
+
+      {goldenCoin && (
+        <div
+          key={goldenCoin.id}
+          onClick={collectGoldenCoin}
+          className="absolute w-20 h-20 rounded-full bg-yellow-500 border-4 border-yellow-300 shadow-2xl animate-fade-in hover:scale-125 transition-transform cursor-pointer"
+          style={{ left: `${goldenCoin.x}%`, top: `${goldenCoin.y}%` }}
+        >
+          <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-yellow-800">
+            🌟
+          </div>
+        </div>
+      )}
+
       {coins.map((coin) => (
         <div
           key={coin.id}
@@ -195,7 +258,6 @@ const CoinGame: React.FC = () => {
         </div>
       ))}
 
-      {/* Extra Animations */}
       <style jsx>{`
         @keyframes fade-in {
           0% {
@@ -237,6 +299,17 @@ const CoinGame: React.FC = () => {
           }
         }
 
+        @keyframes particle {
+          0% {
+            transform: scale(0.5) translateY(0);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(1.5) translateY(-200px);
+            opacity: 0;
+          }
+        }
+
         .animate-fade-in {
           animation: fade-in 0.4s ease-out forwards;
         }
@@ -251,6 +324,10 @@ const CoinGame: React.FC = () => {
 
         .animate-spin-slow {
           animation: spin-slow 6s linear infinite;
+        }
+
+        .animate-particle {
+          animation: particle 1s ease-out forwards;
         }
       `}</style>
     </div>
