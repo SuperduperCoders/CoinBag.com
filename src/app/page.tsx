@@ -19,6 +19,8 @@ const CoinGame: React.FC = () => {
   const [goldenCoin, setGoldenCoin] = useState<Coin | null>(null);
   const [frenzyActive, setFrenzyActive] = useState(false);
   const [frenzyTimeLeft, setFrenzyTimeLeft] = useState(0);
+  const [showDog, setShowDog] = useState(false);
+  const [showBubble, setShowBubble] = useState(false);
 
   useEffect(() => {
     const savedScore = localStorage.getItem("score");
@@ -102,9 +104,18 @@ const CoinGame: React.FC = () => {
       setFrenzyTimeLeft(30);
       setUsedCodes((prev) => [...prev, secretCode]);
       setCodeFeedback("success");
+    } else if (secretCode === "dogydog") {
+      setScore((prev) => prev + 10000);
+      setUsedCodes((prev) => [...prev, secretCode]);
+      setShowDog(true);
+      setShowBubble(true);
+      setCodeFeedback("success");
+
+      setTimeout(() => setShowBubble(false), 2500);
     } else {
       setCodeFeedback("error");
     }
+
     setTimeout(() => setCodeFeedback("none"), 1000);
   };
 
@@ -121,6 +132,8 @@ const CoinGame: React.FC = () => {
       setGoldenCoin(null);
       setFrenzyActive(false);
       setFrenzyTimeLeft(0);
+      setShowDog(false);
+      setShowBubble(false);
       localStorage.clear();
     }
   };
@@ -267,13 +280,25 @@ const CoinGame: React.FC = () => {
         </div>
       ))}
 
+      {showDog && (
+        <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex flex-col items-center">
+          {showBubble && (
+            <div className="bg-white border border-yellow-500 text-yellow-800 font-semibold px-4 py-2 rounded-lg mb-2 opacity-90 animate-fade-away">
+              🐶 here is +10000 clicks
+            </div>
+          )}
+
+        
+        </div>
+      )}
+
       <style jsx>{`
         @keyframes fade-in {
-          0% {
+          from {
             opacity: 0;
             transform: scale(0.5);
           }
-          100% {
+          to {
             opacity: 1;
             transform: scale(1);
           }
@@ -289,11 +314,11 @@ const CoinGame: React.FC = () => {
         }
 
         @keyframes slide-in {
-          0% {
+          from {
             transform: translateX(100%) scale(0.8);
             opacity: 0;
           }
-          100% {
+          to {
             transform: translateX(0) scale(1);
             opacity: 1;
           }
@@ -309,12 +334,21 @@ const CoinGame: React.FC = () => {
         }
 
         @keyframes particle {
-          0% {
+          from {
             transform: scale(0.5) translateY(0);
             opacity: 1;
           }
-          100% {
+          to {
             transform: scale(1.5) translateY(-200px);
+            opacity: 0;
+          }
+        }
+
+        @keyframes fade-away {
+          0% {
+            opacity: 1;
+          }
+          100% {
             opacity: 0;
           }
         }
@@ -337,6 +371,10 @@ const CoinGame: React.FC = () => {
 
         .animate-particle {
           animation: particle 1s ease-out forwards;
+        }
+
+        .animate-fade-away {
+          animation: fade-away 2.5s ease-out forwards;
         }
       `}</style>
     </div>
