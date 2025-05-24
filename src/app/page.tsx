@@ -13,7 +13,7 @@ const CoinGame: React.FC = () => {
   const [nextId, setNextId] = useState(0);
   const [coinsPerSecond, setCoinsPerSecond] = useState(0);
   const [secretCode, setSecretCode] = useState("");
-  const [codeUsed, setCodeUsed] = useState(false);
+  const [usedCodes, setUsedCodes] = useState<string[]>([]);
   const [codeFeedback, setCodeFeedback] = useState<"none" | "success" | "error">("none");
   const [coinMultiplier, setCoinMultiplier] = useState(1);
   const [goldenCoin, setGoldenCoin] = useState<Coin | null>(null);
@@ -24,20 +24,20 @@ const CoinGame: React.FC = () => {
     const savedScore = localStorage.getItem("score");
     const savedCPS = localStorage.getItem("coinsPerSecond");
     const savedNextId = localStorage.getItem("nextId");
-    const savedCodeUsed = localStorage.getItem("codeUsed");
+    const savedUsedCodes = localStorage.getItem("usedCodes");
     const savedMultiplier = localStorage.getItem("coinMultiplier");
 
     if (savedScore) setScore(Number(savedScore));
     if (savedCPS) setCoinsPerSecond(Number(savedCPS));
     if (savedNextId) setNextId(Number(savedNextId));
-    if (savedCodeUsed === "true") setCodeUsed(true);
+    if (savedUsedCodes) setUsedCodes(JSON.parse(savedUsedCodes));
     if (savedMultiplier) setCoinMultiplier(Number(savedMultiplier));
   }, []);
 
   useEffect(() => localStorage.setItem("score", score.toString()), [score]);
   useEffect(() => localStorage.setItem("coinsPerSecond", coinsPerSecond.toString()), [coinsPerSecond]);
   useEffect(() => localStorage.setItem("nextId", nextId.toString()), [nextId]);
-  useEffect(() => localStorage.setItem("codeUsed", codeUsed.toString()), [codeUsed]);
+  useEffect(() => localStorage.setItem("usedCodes", JSON.stringify(usedCodes)), [usedCodes]);
   useEffect(() => localStorage.setItem("coinMultiplier", coinMultiplier.toString()), [coinMultiplier]);
 
   useEffect(() => {
@@ -91,9 +91,16 @@ const CoinGame: React.FC = () => {
   };
 
   const checkSecretCode = () => {
-    if (secretCode === "coinbag123" && !codeUsed) {
+    if (usedCodes.includes(secretCode)) {
+      setCodeFeedback("error");
+    } else if (secretCode === "coinbag123") {
       setScore((prev) => prev + 1_000_000_000);
-      setCodeUsed(true);
+      setUsedCodes((prev) => [...prev, secretCode]);
+      setCodeFeedback("success");
+    } else if (secretCode === "coinrush125") {
+      setFrenzyActive(true);
+      setFrenzyTimeLeft(30);
+      setUsedCodes((prev) => [...prev, secretCode]);
       setCodeFeedback("success");
     } else {
       setCodeFeedback("error");
@@ -108,7 +115,7 @@ const CoinGame: React.FC = () => {
       setNextId(0);
       setCoinsPerSecond(0);
       setSecretCode("");
-      setCodeUsed(false);
+      setUsedCodes([]);
       setCodeFeedback("none");
       setCoinMultiplier(1);
       setGoldenCoin(null);
@@ -210,7 +217,7 @@ const CoinGame: React.FC = () => {
         })}
       </div>
 
-      {frenzyActive && frenzyTimeLeft === 5 && (
+      {frenzyActive && frenzyTimeLeft === 30 && (
         <div className="absolute inset-0 pointer-events-none">
           {[...Array(20)].map((_, i) => (
             <div
